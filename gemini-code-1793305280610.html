@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cazadores de Libros Mágicos 📚✨</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a2e;
+            color: #fff;
+            margin: 0;
+            padding: 10px;
+            text-align: center;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            color: #f9ca24;
+            font-size: 2.2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin: 10px 0;
+        }
+
+        .marcador {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 12px;
+            margin: 0 auto 15px auto;
+            max-width: 600px;
+            font-size: 1.2em;
+            border: 2px solid #f9ca24;
+        }
+
+        .marcador span {
+            color: #f9ca24;
+            font-weight: bold;
+        }
+
+        #juego-contenedor {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            height: 600px;
+            margin: 0 auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: background 0.5s ease;
+        }
+
+        /* Fondos por nivel */
+        .nivel-0 { background: linear-gradient(135deg, #74b9ff, #a29bfe); }
+        .nivel-1 { background: linear-gradient(135deg, #55efc4, #00b894); }
+        .nivel-2 { 
+            background-color: #2d3436;
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 110px, #636e72 110px, #636e72 120px);
+        }
+
+        .item {
+            position: absolute;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+
+        .distractor { cursor: default; }
+        
+        .objetivo {
+            cursor: pointer;
+            z-index: 5;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.4));
+        }
+
+        .objetivo:hover {
+            transform: scale(1.2) rotate(-10deg);
+        }
+
+        .objetivo.encontrado {
+            transform: scale(3) translateY(-20px) rotate(360deg);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* Pantallas superpuestas */
+        .pantalla {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(26, 26, 46, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .oculto { display: none !important; }
+
+        .pantalla h2 {
+            font-size: 2.5em;
+            color: #f9ca24;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .pantalla p {
+            font-size: 1.2em;
+            max-width: 600px;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+
+        button {
+            font-family: 'Poppins', sans-serif;
+            background: #eb4d4b;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+            margin: 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        button:hover { background: #ff7979; transform: translateY(-2px); }
+        button:active { transform: translateY(2px); box-shadow: none; }
+
+        /* Modal de Desafíos */
+        .caja-desafio {
+            background: #dfe6e9;
+            color: #2d3436;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 550px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            border: 4px solid #f9ca24;
+        }
+
+        .caja-desafio h3 { margin-top: 0; color: #d63031; }
+        
+        .texto-desafio {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #0984e3;
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 5px solid #0984e3;
+        }
+
+        .rejilla-opciones {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .rejilla-opciones button {
+            background: #0984e3;
+            font-size: 1.1em;
+            padding: 15px;
+        }
+
+        .rejilla-opciones button:hover { background: #74b9ff; }
+
+        #mensaje-feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.2em;
+            height: 25px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Cazadores de Libros Mágicos 📚✨</h1>
+    
+    <div class="marcador">
+        <div>Nivel: <span id="ui-nivel">1</span> / 3</div>
+        <div>Busca: <span id="ui-objetivo">📕</span></div>
+        <div>Faltan: <span id="ui-faltan">5</span></div>
+    </div>
+
+    <div id="juego-contenedor" class="nivel-0">
+        
+        <!-- Pantalla Inicio -->
+        <div id="pantalla-inicio" class="pantalla">
+            <h2>¡Bienvenido Buscador!</h2>
+            <p>La Gran Biblioteca ha perdido sus libros más valiosos. Tu misión es encontrarlos a través de 3 niveles. A medida que avances, los libros estarán mejor escondidos y protegerán sus secretos con acertijos.</p>
+            <button onclick="iniciarJuego()">Comenzar Aventura</button>
+        </div>
+
+        <!-- Pantalla Nivel Superado -->
+        <div id="pantalla-nivel" class="pantalla oculto">
+            <h2 id="titulo-nivel-superado">¡Nivel Completado!</h2>
+            <p>Has demostrado tener buena vista. Prepárate para el siguiente reto.</p>
+            <button onclick="siguienteNivel()">Continuar ➡️</button>
+        </div>
+
+        <!-- Pantalla Victoria -->
+        <div id="pantalla-victoria" class="pantalla oculto">
+            <h2>¡Misión Completada! 🏆</h2>
+            <p>¡Increíble! Encontraste todos los libros y resolviste todos los acertijos mágicos. Eres un verdadero Maestro de los Libros.</p>
+            <button onclick="location.reload()">Jugar de Nuevo 🔄</button>
+        </div>
+
+        <!-- Modal de Desafíos -->
+        <div id="pantalla-desafio" class="pantalla oculto">
+            <div class="caja-desafio">
+                <h3>¡Libro mágico encontrado!</h3>
+                <div id="texto-desafio" class="texto-desafio">...</div>
+                <div class="rejilla-opciones" id="opciones-desafio"></div>
+                <div id="mensaje-feedback"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const contenedor = document.getElementById('juego-contenedor');
+        const uiNivel = document.getElementById('ui-nivel');
+        const uiObjetivo = document.getElementById('ui-objetivo');
+        const uiFaltan = document.getElementById('ui-faltan');
+        
+        const uiPantallas = {
+            inicio: document.getElementById('pantalla-inicio'),
+            nivel: document.getElementById('pantalla-nivel'),
+            victoria: document.getElementById('pantalla-victoria'),
+            desafio: document.getElementById('pantalla-desafio')
+        };
+
+        const desTexto = document.getElementById('texto-desafio');
+        const desOpciones = document.getElementById('opciones-desafio');
+        const desFeedback = document.getElementById('mensaje-feedback');
+
+        // Configuración de los niveles y sus desafíos
+        const niveles = [
+            {
+                // Nivel 1: Búsqueda simple
+                claseFondo: 'nivel-0',
+                emojiObjetivo: '📕',
+                cantidadObjetivos: 5,
+                cantidadDistractores: 40,
+                emojisDistractores: ['🧸', '⚽', '🚗', '🪴', '🍎', '🧩', '🚀', '🎨'],
+                tamanoBase: 50,
+                desafios: [] // Sin desafíos
+            },
+            {
+                // Nivel 2: Completar oración de Disney
+                claseFondo: 'nivel-1',
+                emojiObjetivo: '📘',
+                cantidadObjetivos: 3,
+                cantidadDistractores: 60,
+                emojisDistractores: ['🌲', '🍄', '🦋', '🍁', '🪵', '🦊', '🦉', '⛺'],
+                tamanoBase: 45,
+                desafios: [
+                    {
+                        pregunta: "Completa la oración: 'El zapato de cristal que se pierde a la medianoche pertenece a ___.'",
+                        opciones: ["Blancanieves", "Cenicienta", "Ariel", "Bella"],
+                        correcta: "Cenicienta"
+                    },
+                    {
+                        pregunta: "Completa la oración: 'El muñeco de nieve que cobra vida y ama los abrazos cálidos se llama ___.'",
+                        opciones: ["Sven", "Kristoff", "Olaf", "Hans"],
+                        correcta: "Olaf"
+                    },
+                    {
+                        pregunta: "Completa la oración: 'El niño de madera al que le crece la nariz cuando miente es ___.'",
+                        opciones: ["Peter Pan", "Dumbo", "Pinocho", "Hércules"],
+                        correcta: "Pinocho"
+                    }
+                ]
+            },
+            {
+                // Nivel 3: Unir escena con película (Camuflaje Extremo)
+                claseFondo: 'nivel-2',
+                emojiObjetivo: '📔', // Libro antiguo
+                cantidadObjetivos: 2,
+                cantidadDistractores: 120, // Muchos distractores
+                emojisDistractores: ['📕', '📗', '📘', '📙', '📚', '📖', '📜', '📰', '📓', '📒'], // Los distractores también son libros
+                tamanoBase: 35,
+                desafios: [
+                    {
+                        pregunta: "¿A qué película pertenece esta escena?: 'Una joven sirena hace un trato con una bruja del mar para cambiar su voz por piernas humanas.'",
+                        opciones: ["Moana", "La Sirenita", "Buscando a Nemo", "Valiente"],
+                        correcta: "La Sirenita"
+                    },
+                    {
+                        pregunta: "¿A qué película pertenece esta escena?: 'Un cachorro de león huye de su hogar creyendo que tuvo la culpa de un accidente, y crece cantando Hakuna Matata.'",
+                        opciones: ["El Libro de la Selva", "Tarzán", "El Rey León", "Zootopia"],
+                        correcta: "El Rey León"
+                    }
+                ]
+            }
+        ];
+
+        let nivelActual = 0;
+        let encontrados = 0;
+        let totalNivel = 0;
+        let libroClickeado = null;
+        let indiceDesafioActual = 0;
+
+        function iniciarJuego() {
+            uiPantallas.inicio.classList.add('oculto');
+            cargarNivel(0);
+        }
+
+        function cargarNivel(indice) {
+            nivelActual = indice;
+            encontrados = 0;
+            indiceDesafioActual = 0;
+            const config = niveles[nivelActual];
+            totalNivel = config.cantidadObjetivos;
+
+            // Actualizar interfaz
+            uiNivel.textContent = nivelActual + 1;
+            uiObjetivo.textContent = config.emojiObjetivo;
+            uiFaltan.textContent = totalNivel;
+            contenedor.className = config.claseFondo;
+
+            // Limpiar objetos anteriores
+            document.querySelectorAll('.item').forEach(el => el.remove());
+
+            // Crear distractores
+            for(let i = 0; i < config.cantidadDistractores; i++) {
+                const emoji = config.emojisDistractores[Math.floor(Math.random() * config.emojisDistractores.length)];
+                crearElemento(emoji, false, config.tamanoBase);
+            }
+
+            // Crear objetivos (asegurarse de que queden bien mezclados en el DOM)
+            for(let i = 0; i < config.cantidadObjetivos; i++) {
+                crearElemento(config.emojiObjetivo, true, config.tamanoBase);
+            }
+        }
+
+        function crearElemento(emoji, esObjetivo, tamanoBase) {
+            const el = document.createElement('div');
+            el.textContent = emoji;
+            el.classList.add('item', esObjetivo ? 'objetivo' : 'distractor');
+
+            // Variación visual para camuflar mejor
+            const tamano = tamanoBase + (Math.random() * 15 - 5);
+            const rotacion = Math.floor(Math.random() * 60 - 30);
+            
+            el.style.fontSize = `${tamano}px`;
+            el.style.transform = `rotate(${rotacion}deg)`;
+
+            // Posicionamiento en el nivel 3 (alineado a los "estantes" del fondo de rayas)
+            if (nivelActual === 2) {
+                const fila = Math.floor(Math.random() * 5); // 5 estantes visibles aprox
+                const posY = fila * 120 + 65; // Ajuste manual para que sienten en la línea
+                const posX = Math.floor(Math.random() * 90) + 2;
+                el.style.top = `${posY}px`;
+                el.style.left = `${posX}%`;
+            } else {
+                el.style.top = `${Math.floor(Math.random() * 85) + 2}%`;
+                el.style.left = `${Math.floor(Math.random() * 92) + 2}%`;
+            }
+
+            if (esObjetivo) {
+                el.onclick = () => procesarClicObjetivo(el);
+            }
+
+            contenedor.appendChild(el);
+        }
+
+        function procesarClicObjetivo(elemento) {
+            if (elemento.classList.contains('encontrado')) return;
+
+            const config = niveles[nivelActual];
+
+            if (config.desafios.length > 0) {
+                libroClickeado = elemento;
+                abrirDesafio();
+            } else {
+                registrarHallazgo(elemento);
+            }
+        }
+
+        function abrirDesafio() {
+            const config = niveles[nivelActual];
+            const desafio = config.desafios[indiceDesafioActual];
+            
+            desTexto.textContent = desafio.pregunta;
+            desOpciones.innerHTML = '';
+            desFeedback.textContent = '';
+            
+            // Renderizar botones de opciones
+            desafio.opciones.forEach(opcion => {
+                const btn = document.createElement('button');
+                btn.textContent = opcion;
+                btn.onclick = () => verificarRespuesta(opcion, desafio.correcta);
+                desOpciones.appendChild(btn);
+            });
+
+            uiPantallas.desafio.classList.remove('oculto');
+        }
+
+        function verificarRespuesta(seleccion, correcta) {
+            if (seleccion === correcta) {
+                desFeedback.style.color = '#00b894';
+                desFeedback.textContent = '¡Respuesta Correcta! ✨';
+                
+                // Bloquear clics múltiples
+                Array.from(desOpciones.children).forEach(btn => btn.disabled = true);
+
+                setTimeout(() => {
+                    uiPantallas.desafio.classList.add('oculto');
+                    registrarHallazgo(libroClickeado);
+                    indiceDesafioActual++;
+                }, 1200);
+            } else {
+                desFeedback.style.color = '#d63031';
+                desFeedback.textContent = 'Mmm, esa no es. ¡Intenta de nuevo!';
+            }
+        }
+
+        function registrarHallazgo(elemento) {
+            elemento.classList.add('encontrado');
+            encontrados++;
+            uiFaltan.textContent = totalNivel - encontrados;
+
+            if (encontrados === totalNivel) {
+                setTimeout(() => {
+                    if (nivelActual < niveles.length - 1) {
+                        document.getElementById('titulo-nivel-superado').textContent = `¡Nivel ${nivelActual + 1} Completado!`;
+                        uiPantallas.nivel.classList.remove('oculto');
+                    } else {
+                        uiPantallas.victoria.classList.remove('oculto');
+                    }
+                }, 800); // Dar tiempo a la animación de CSS
+            }
+        }
+
+        function siguienteNivel() {
+            uiPantallas.nivel.classList.add('oculto');
+            cargarNivel(nivelActual + 1);
+        }
+    </script>
+</body>
+</html>
